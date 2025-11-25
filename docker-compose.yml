@@ -1,0 +1,86 @@
+services:
+  router-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: router-1
+    environment:
+      - NODE_ID=router-1
+      - NODE_TYPE=router
+      - NODE_CAPACITY=1000
+    networks:
+      - netsim
+    command: ["./node-server"]
+
+  router-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: router-2
+    environment:
+      - NODE_ID=router-2
+      - NODE_TYPE=router
+      - NODE_CAPACITY=1000
+    networks:
+      - netsim
+    command: ["./node-server"]
+
+  router-3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: router-3
+    environment:
+      - NODE_ID=router-3
+      - NODE_TYPE=router
+      - NODE_CAPACITY=1000
+    networks:
+      - netsim
+    command: ["./node-server"]
+
+  switch-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: switch-1
+    environment:
+      - NODE_ID=switch-1
+      - NODE_TYPE=switch
+      - NODE_CAPACITY=2000
+    networks:
+      - netsim
+    command: ["./node-server"]
+
+  switch-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: switch-2
+    environment:
+      - NODE_ID=switch-2
+      - NODE_TYPE=switch
+      - NODE_CAPACITY=2000
+    networks:
+      - netsim
+    command: ["./node-server"]
+
+  simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: simulator
+    volumes:
+      - ./topology.yaml:/app/topology.yaml
+    networks:
+      - netsim
+    command: ["./simulator"]
+    depends_on:
+      - router-1
+      - router-2
+      - router-3
+      - switch-1
+      - switch-2
+
+networks:
+  netsim:
+    driver: bridge

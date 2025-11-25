@@ -1,0 +1,89 @@
+nodes:
+  - id: router-1
+    type: router
+    capacity: 1000
+  - id: router-2
+    type: router
+    capacity: 1000
+  - id: router-3
+    type: router
+    capacity: 1000
+  - id: switch-1
+    type: switch
+    capacity: 2000
+  - id: switch-2
+    type: switch
+    capacity: 2000
+  - id: tower-1
+    type: tower
+    capacity: 500
+  - id: tower-2
+    type: tower
+    capacity: 500
+
+links:
+  # Core network backbone
+  - source: router-1
+    dest: router-2
+    bandwidth: 10000000  # 10 Mbps
+    latency: 5
+  - source: router-2
+    dest: router-3
+    bandwidth: 10000000
+    latency: 5
+  - source: router-3
+    dest: router-1
+    bandwidth: 10000000
+    latency: 5
+  
+  # Switches connected to routers
+  - source: router-1
+    dest: switch-1
+    bandwidth: 5000000  # 5 Mbps
+    latency: 2
+  - source: router-2
+    dest: switch-2
+    bandwidth: 5000000
+    latency: 2
+  
+  # Towers connected to switches
+  - source: switch-1
+    dest: tower-1
+    bandwidth: 1000000  # 1 Mbps
+    latency: 10
+  - source: switch-2
+    dest: tower-2
+    bandwidth: 1000000
+    latency: 10
+  
+  # Reverse links (bidirectional)
+  - source: router-2
+    dest: router-1
+    bandwidth: 10000000
+    latency: 5
+  - source: router-3
+    dest: router-2
+    bandwidth: 10000000
+    latency: 5
+  - source: router-1
+    dest: router-3
+    bandwidth: 10000000
+    latency: 5
+  
+  - source: switch-1
+    dest: router-1
+    bandwidth: 5000000
+    latency: 2
+  - source: switch-2
+    dest: router-2
+    bandwidth: 5000000
+    latency: 2
+  
+  - source: tower-1
+    dest: switch-1
+    bandwidth: 1000000
+    latency: 10
+  - source: tower-2
+    dest: switch-2
+    bandwidth: 1000000
+    latency: 10
