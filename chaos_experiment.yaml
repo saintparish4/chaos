@@ -1,0 +1,68 @@
+name: "Comprehensive Chaos Test"
+description: "Tests network resilience with multiple failure types"
+duration: 20.0
+
+events:
+  # Single node failure at t=2s
+  - time: 2.0
+    type: "node_failure"
+    target: "router-2"
+    duration: 5.0
+
+  # Link failure at t=4s
+  - time: 4.0
+    type: "link_failure"
+    source: "router-1"
+    dest: "router-3"
+    duration: 3.0
+
+  # Network congestion at t=6s
+  - time: 6.0
+    type: "congestion"
+    source: "switch-1"
+    dest: "tower-1"
+    messages_per_second: 100.0
+    message_size: 2000
+    duration: 2.0
+
+  # Random node failures at t=8s
+  - time: 8.0
+    type: "random_node_failure"
+    min_nodes: 1
+    max_nodes: 2
+    duration: 4.0
+
+  # Slow link at t=10s
+  - time: 10.0
+    type: "slow_link"
+    source: "switch-2"
+    dest: "tower-2"
+    latency_multiplier: 10.0
+    duration: 3.0
+
+  # Network partition at t=12s
+  - time: 12.0
+    type: "network_partition"
+    partitions:
+      - ["router-1", "switch-1", "tower-1"]
+      - ["router-2", "router-3", "switch-2", "tower-2"]
+    duration: 5.0
+
+  # Cascading failure at t=15s
+  - time: 15.0
+    type: "cascading_failure"
+    target: "router-1"
+    cascade_prob: 0.5
+    max_cascade: 3
+    duration: 3.0
+
+# Optional: Randomized chaos mode
+randomized:
+  enabled: false
+  failure_rate: 0.5  # 0.5 failures per second
+  failure_types:
+    - "node_failure"
+    - "link_failure"
+    - "slow_link"
+  min_duration: 1.0
+  max_duration: 3.0
