@@ -38,10 +38,10 @@ func (s *RandomNodeFailureScenario) Execute(injector *FailureInjector, startTime
 
 // CascadingFailureScenario triggers cascading failures
 type CascadingFailureScenario struct {
-	InitialNode   string
-	CascadeProb   float64
-	MaxCascade    int
-	Duration      float64
+	InitialNode string
+	CascadeProb float64
+	MaxCascade  int
+	Duration    float64
 }
 
 func (s *CascadingFailureScenario) Name() string {
@@ -49,7 +49,7 @@ func (s *CascadingFailureScenario) Name() string {
 }
 
 func (s *CascadingFailureScenario) Description() string {
-	return fmt.Sprintf("Cascade from %s (prob=%.2f, max=%d) for %.1fs", 
+	return fmt.Sprintf("Cascade from %s (prob=%.2f, max=%d) for %.1fs",
 		s.InitialNode, s.CascadeProb, s.MaxCascade, s.Duration)
 }
 
@@ -91,9 +91,9 @@ func (s *NetworkCongestionScenario) Execute(injector *FailureInjector, startTime
 
 // ByzantineFailureScenario introduces Byzantine nodes
 type ByzantineFailureScenario struct {
-	NodeID          string
-	CorruptionRate  float64
-	Duration        float64
+	NodeID         string
+	CorruptionRate float64
+	Duration       float64
 }
 
 func (s *ByzantineFailureScenario) Name() string {

@@ -35,18 +35,18 @@ func NewPoissonTrafficGenerator(source, dest string, rate float64, packetSize in
 // GenerateEvents generates MESSAGE_SEND events following Poisson distribution
 func (ptg *PoissonTrafficGenerator) GenerateEvents(startTime, endTime float64) []*SimulationEvent {
 	events := make([]*SimulationEvent, 0)
-	
+
 	currentTime := startTime
 	for currentTime < endTime {
 		// Inter-arrival time follows exponential distribution
 		// T = -ln(U) / lambda, where U is uniform(0,1)
 		interArrival := -math.Log(rand.Float64()) / ptg.Rate
 		currentTime += interArrival
-		
+
 		if currentTime >= endTime {
 			break
 		}
-		
+
 		eventID := fmt.Sprintf("poisson-%s-%s-%.6f", ptg.Source, ptg.Destination, currentTime)
 		event := &SimulationEvent{
 			ID:        eventID,
@@ -62,7 +62,7 @@ func (ptg *PoissonTrafficGenerator) GenerateEvents(startTime, endTime float64) [
 		}
 		events = append(events, event)
 	}
-	
+
 	return events
 }
 
@@ -74,13 +74,13 @@ func (ptg *PoissonTrafficGenerator) GetDescription() string {
 
 // BurstyTrafficGenerator generates bursty traffic patterns
 type BurstyTrafficGenerator struct {
-	Source       string
-	Destination  string
-	BurstRate    float64 // messages per second during burst
-	BurstSize    int     // number of messages per burst
-	BurstPeriod  float64 // time between bursts (seconds)
-	PacketSize   int     // bytes per message
-	Payload      []byte
+	Source      string
+	Destination string
+	BurstRate   float64 // messages per second during burst
+	BurstSize   int     // number of messages per burst
+	BurstPeriod float64 // time between bursts (seconds)
+	PacketSize  int     // bytes per message
+	Payload     []byte
 }
 
 // NewBurstyTrafficGenerator creates a new bursty traffic generator
@@ -99,7 +99,7 @@ func NewBurstyTrafficGenerator(source, dest string, burstRate float64, burstSize
 // GenerateEvents generates bursty MESSAGE_SEND events
 func (btg *BurstyTrafficGenerator) GenerateEvents(startTime, endTime float64) []*SimulationEvent {
 	events := make([]*SimulationEvent, 0)
-	
+
 	currentBurstTime := startTime
 	for currentBurstTime < endTime {
 		// Generate a burst
@@ -107,11 +107,11 @@ func (btg *BurstyTrafficGenerator) GenerateEvents(startTime, endTime float64) []
 			// Messages within burst follow exponential inter-arrival
 			interArrival := -math.Log(rand.Float64()) / btg.BurstRate
 			messageTime := currentBurstTime + interArrival
-			
+
 			if messageTime >= endTime {
 				break
 			}
-			
+
 			eventID := fmt.Sprintf("burst-%s-%s-%.6f", btg.Source, btg.Destination, messageTime)
 			event := &SimulationEvent{
 				ID:        eventID,
@@ -127,11 +127,11 @@ func (btg *BurstyTrafficGenerator) GenerateEvents(startTime, endTime float64) []
 			}
 			events = append(events, event)
 		}
-		
+
 		// Move to next burst
 		currentBurstTime += btg.BurstPeriod
 	}
-	
+
 	return events
 }
 
@@ -164,16 +164,16 @@ func NewConstantTrafficGenerator(source, dest string, rate float64, packetSize i
 // GenerateEvents generates MESSAGE_SEND events at constant rate
 func (ctg *ConstantTrafficGenerator) GenerateEvents(startTime, endTime float64) []*SimulationEvent {
 	events := make([]*SimulationEvent, 0)
-	
+
 	interval := 1.0 / ctg.Rate
-	
+
 	for i := 0; ; i++ {
 		currentTime := startTime + float64(i)*interval
-		
+
 		if currentTime >= endTime {
 			break
 		}
-		
+
 		eventID := fmt.Sprintf("constant-%s-%s-%.6f", ctg.Source, ctg.Destination, currentTime)
 		event := &SimulationEvent{
 			ID:        eventID,
@@ -189,7 +189,7 @@ func (ctg *ConstantTrafficGenerator) GenerateEvents(startTime, endTime float64) 
 		}
 		events = append(events, event)
 	}
-	
+
 	return events
 }
 
@@ -201,11 +201,11 @@ func (ctg *ConstantTrafficGenerator) GetDescription() string {
 
 // TrafficFlow represents a configured traffic flow
 type TrafficFlow struct {
-	ID          string
-	Generator   TrafficGenerator
-	StartTime   float64
-	EndTime     float64
-	Active      bool
+	ID        string
+	Generator TrafficGenerator
+	StartTime float64
+	EndTime   float64
+	Active    bool
 }
 
 // NewTrafficFlow creates a new traffic flow
@@ -257,14 +257,14 @@ func (tm *TrafficManager) GetFlow(flowID string) *TrafficFlow {
 // GenerateAllEvents generates events for all active flows
 func (tm *TrafficManager) GenerateAllEvents() []*SimulationEvent {
 	allEvents := make([]*SimulationEvent, 0)
-	
+
 	for _, flow := range tm.flows {
 		if flow.Active {
 			events := flow.GenerateEvents()
 			allEvents = append(allEvents, events...)
 		}
 	}
-	
+
 	return allEvents
 }
 

@@ -14,45 +14,45 @@ type SimulatedLink struct {
 	Dest      string
 	Bandwidth int     // bytes per second
 	Latency   float64 // seconds (propagation delay)
-	
+
 	// Link state
-	Active       bool
-	mu           sync.RWMutex
-	
+	Active bool
+	mu     sync.RWMutex
+
 	// Queue for messages in transit
 	messageQueue []*InTransitMessage
 	queueMu      sync.Mutex
-	
+
 	// Current utilization
-	currentLoad  int     // bytes currently being transmitted
-	lastUpdate   float64 // last time utilization was updated
-	
+	currentLoad int     // bytes currently being transmitted
+	lastUpdate  float64 // last time utilization was updated
+
 	// Packet drop configuration
-	dropRate     float64 // probability of random packet drop (0.0 - 1.0)
-	dropOnCongestion bool // drop packets when link is saturated
-	
+	dropRate         float64 // probability of random packet drop (0.0 - 1.0)
+	dropOnCongestion bool    // drop packets when link is saturated
+
 	// Metrics
 	metrics *LinkMetrics
 }
 
 // InTransitMessage represents a message traveling through a link
 type InTransitMessage struct {
-	Message      *nodes.Message
-	Size         int     // bytes
-	ArrivalTime  float64 // when message will arrive at destination
-	Dropped      bool
+	Message     *nodes.Message
+	Size        int     // bytes
+	ArrivalTime float64 // when message will arrive at destination
+	Dropped     bool
 }
 
 // LinkMetrics tracks link performance metrics
 type LinkMetrics struct {
-	mu                sync.RWMutex
-	BytesSent         int64
-	BytesDropped      int64
-	MessagesSent      int64
-	MessagesDropped   int64
-	TotalLatency      float64
+	mu                 sync.RWMutex
+	BytesSent          int64
+	BytesDropped       int64
+	MessagesSent       int64
+	MessagesDropped    int64
+	TotalLatency       float64
 	UtilizationSamples []float64
-	maxSamples        int
+	maxSamples         int
 }
 
 // NewLinkMetrics creates new link metrics
@@ -84,7 +84,7 @@ func (lm *LinkMetrics) RecordDrop(size int) {
 func (lm *LinkMetrics) RecordUtilization(utilization float64) {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
-	
+
 	if len(lm.UtilizationSamples) >= lm.maxSamples {
 		// Remove oldest sample
 		lm.UtilizationSamples = lm.UtilizationSamples[1:]
@@ -96,11 +96,11 @@ func (lm *LinkMetrics) RecordUtilization(utilization float64) {
 func (lm *LinkMetrics) GetUtilization() float64 {
 	lm.mu.RLock()
 	defer lm.mu.RUnlock()
-	
+
 	if len(lm.UtilizationSamples) == 0 {
 		return 0.0
 	}
-	
+
 	sum := 0.0
 	for _, u := range lm.UtilizationSamples {
 		sum += u
@@ -112,7 +112,7 @@ func (lm *LinkMetrics) GetUtilization() float64 {
 func (lm *LinkMetrics) GetPacketLossRate() float64 {
 	lm.mu.RLock()
 	defer lm.mu.RUnlock()
-	
+
 	total := lm.MessagesSent + lm.MessagesDropped
 	if total == 0 {
 		return 0.0
@@ -124,7 +124,7 @@ func (lm *LinkMetrics) GetPacketLossRate() float64 {
 func (lm *LinkMetrics) GetAverageLatency() float64 {
 	lm.mu.RLock()
 	defer lm.mu.RUnlock()
-	
+
 	if lm.MessagesSent == 0 {
 		return 0.0
 	}
@@ -135,16 +135,16 @@ func (lm *LinkMetrics) GetAverageLatency() float64 {
 func (lm *LinkMetrics) GetStats() (sent int64, dropped int64, lossRate float64, avgLatency float64, utilization float64) {
 	lm.mu.RLock()
 	defer lm.mu.RUnlock()
-	
+
 	total := lm.MessagesSent + lm.MessagesDropped
 	if total > 0 {
 		lossRate = float64(lm.MessagesDropped) / float64(total)
 	}
-	
+
 	if lm.MessagesSent > 0 {
 		avgLatency = lm.TotalLatency / float64(lm.MessagesSent)
 	}
-	
+
 	if len(lm.UtilizationSamples) > 0 {
 		sum := 0.0
 		for _, u := range lm.UtilizationSamples {
@@ -152,7 +152,7 @@ func (lm *LinkMetrics) GetStats() (sent int64, dropped int64, lossRate float64, 
 		}
 		utilization = sum / float64(len(lm.UtilizationSamples))
 	}
-	
+
 	return lm.MessagesSent, lm.MessagesDropped, lossRate, avgLatency, utilization
 }
 
@@ -205,14 +205,14 @@ func (sl *SimulatedLink) SetActive(active bool) {
 func (sl *SimulatedLink) CanTransmit(size int, currentTime float64) bool {
 	sl.queueMu.Lock()
 	defer sl.queueMu.Unlock()
-	
+
 	if !sl.Active {
 		return false
 	}
-	
+
 	// Update current load based on elapsed time
 	sl.updateLoad(currentTime)
-	
+
 	// Check if adding this message would exceed bandwidth
 	return sl.currentLoad+size <= sl.Bandwidth
 }
@@ -221,9 +221,9 @@ func (sl *SimulatedLink) CanTransmit(size int, currentTime float64) bool {
 func (sl *SimulatedLink) GetCurrentUtilization(currentTime float64) float64 {
 	sl.queueMu.Lock()
 	defer sl.queueMu.Unlock()
-	
+
 	sl.updateLoad(currentTime)
-	
+
 	if sl.Bandwidth == 0 {
 		return 0.0
 	}
@@ -248,31 +248,31 @@ func (sl *SimulatedLink) updateLoad(currentTime float64) {
 func (sl *SimulatedLink) TransmitMessage(msg *nodes.Message, size int, currentTime float64) (*InTransitMessage, error) {
 	sl.queueMu.Lock()
 	defer sl.queueMu.Unlock()
-	
+
 	if !sl.Active {
 		sl.metrics.RecordDrop(size)
 		return nil, fmt.Errorf("link is not active")
 	}
-	
+
 	// Update load
 	sl.updateLoad(currentTime)
-	
+
 	// Check for random drop
 	if sl.dropRate > 0 && rand.Float64() < sl.dropRate {
 		sl.metrics.RecordDrop(size)
 		return nil, fmt.Errorf("packet randomly dropped")
 	}
-	
+
 	// Check for congestion drop
 	if sl.dropOnCongestion && sl.currentLoad+size > sl.Bandwidth {
 		sl.metrics.RecordDrop(size)
 		return nil, fmt.Errorf("link congested, packet dropped")
 	}
-	
+
 	// Calculate arrival time = current time + propagation delay + transmission delay
 	transmissionDelay := float64(size) / float64(sl.Bandwidth)
 	arrivalTime := currentTime + sl.Latency + transmissionDelay
-	
+
 	// Create in-transit message
 	inTransit := &InTransitMessage{
 		Message:     msg,
@@ -280,13 +280,13 @@ func (sl *SimulatedLink) TransmitMessage(msg *nodes.Message, size int, currentTi
 		ArrivalTime: arrivalTime,
 		Dropped:     false,
 	}
-	
+
 	// Add to load
 	sl.currentLoad += size
-	
+
 	// Record metrics
 	sl.metrics.RecordSend(size, sl.Latency+transmissionDelay)
-	
+
 	return inTransit, nil
 }
 
@@ -305,12 +305,12 @@ func (sl *SimulatedLink) GetMetrics() *LinkMetrics {
 func (sl *SimulatedLink) String() string {
 	sl.mu.RLock()
 	defer sl.mu.RUnlock()
-	
+
 	status := "UP"
 	if !sl.Active {
 		status = "DOWN"
 	}
-	
+
 	return fmt.Sprintf("Link{%s->%s, BW:%d B/s, Latency:%.3fs, Status:%s}",
 		sl.Source, sl.Dest, sl.Bandwidth, sl.Latency, status)
 }

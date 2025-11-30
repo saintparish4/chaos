@@ -12,12 +12,12 @@ import (
 
 // ResilienceManager handles resilience mechanisms
 type ResilienceManager struct {
-	sim               *simulator.EventDrivenSimulator
-	adaptiveRouting   *AdaptiveRoutingProtocol
-	retryManager      *RetryManager
-	circuitBreakers   map[string]*CircuitBreaker
-	healthChecker     *HealthChecker
-	mu                sync.RWMutex
+	sim             *simulator.EventDrivenSimulator
+	adaptiveRouting *AdaptiveRoutingProtocol
+	retryManager    *RetryManager
+	circuitBreakers map[string]*CircuitBreaker
+	healthChecker   *HealthChecker
+	mu              sync.RWMutex
 }
 
 // NewResilienceManager creates a new resilience manager
@@ -65,12 +65,12 @@ func (rm *ResilienceManager) GetCircuitBreaker(nodeID string) *CircuitBreaker {
 
 // AdaptiveRoutingProtocol recalculates routes when failures are detected
 type AdaptiveRoutingProtocol struct {
-	sim                 *simulator.EventDrivenSimulator
-	enabled             bool
-	lastUpdate          float64
-	updateInterval      float64
-	failureDetections   map[string]int
-	mu                  sync.RWMutex
+	sim               *simulator.EventDrivenSimulator
+	enabled           bool
+	lastUpdate        float64
+	updateInterval    float64
+	failureDetections map[string]int
+	mu                sync.RWMutex
 }
 
 // NewAdaptiveRoutingProtocol creates a new adaptive routing protocol
@@ -254,22 +254,22 @@ func (rm *RetryManager) RecordRetry(messageID string) {
 
 // CircuitBreaker prevents routing through failed nodes
 type CircuitBreaker struct {
-	NodeID          string
-	State           CircuitBreakerState
-	FailureCount    int
+	NodeID           string
+	State            CircuitBreakerState
+	FailureCount     int
 	FailureThreshold int
-	Timeout         float64
-	LastFailureTime time.Time
-	mu              sync.RWMutex
+	Timeout          float64
+	LastFailureTime  time.Time
+	mu               sync.RWMutex
 }
 
 // CircuitBreakerState represents the state of a circuit breaker
 type CircuitBreakerState string
 
 const (
-	CircuitClosed    CircuitBreakerState = "CLOSED"     // Normal operation
-	CircuitOpen      CircuitBreakerState = "OPEN"       // Blocking traffic
-	CircuitHalfOpen  CircuitBreakerState = "HALF_OPEN"  // Testing if recovered
+	CircuitClosed   CircuitBreakerState = "CLOSED"    // Normal operation
+	CircuitOpen     CircuitBreakerState = "OPEN"      // Blocking traffic
+	CircuitHalfOpen CircuitBreakerState = "HALF_OPEN" // Testing if recovered
 )
 
 // NewCircuitBreaker creates a new circuit breaker
@@ -343,12 +343,12 @@ func (cb *CircuitBreaker) GetState() CircuitBreakerState {
 
 // HealthChecker performs periodic health checks between nodes
 type HealthChecker struct {
-	sim              *simulator.EventDrivenSimulator
-	enabled          bool
-	checkInterval    float64
-	lastCheck        float64
-	unhealthyNodes   map[string]bool
-	mu               sync.RWMutex
+	sim            *simulator.EventDrivenSimulator
+	enabled        bool
+	checkInterval  float64
+	lastCheck      float64
+	unhealthyNodes map[string]bool
+	mu             sync.RWMutex
 }
 
 // NewHealthChecker creates a new health checker

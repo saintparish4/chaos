@@ -34,12 +34,12 @@ func NewRingBuffer(capacity int) *RingBuffer {
 func (rb *RingBuffer) Add(timestamp, value float64) {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
-	
+
 	rb.data[rb.head] = TimeSeriesMetric{
 		Timestamp: timestamp,
 		Value:     value,
 	}
-	
+
 	rb.head = (rb.head + 1) % rb.capacity
 	if rb.size < rb.capacity {
 		rb.size++
@@ -50,19 +50,19 @@ func (rb *RingBuffer) Add(timestamp, value float64) {
 func (rb *RingBuffer) GetAll() []TimeSeriesMetric {
 	rb.mu.RLock()
 	defer rb.mu.RUnlock()
-	
+
 	if rb.size == 0 {
 		return []TimeSeriesMetric{}
 	}
-	
+
 	result := make([]TimeSeriesMetric, rb.size)
-	
+
 	// If buffer is not full, data is from 0 to size
 	if rb.size < rb.capacity {
 		copy(result, rb.data[:rb.size])
 		return result
 	}
-	
+
 	// If buffer is full, data wraps around
 	idx := 0
 	for i := rb.head; i < rb.capacity; i++ {
@@ -73,7 +73,7 @@ func (rb *RingBuffer) GetAll() []TimeSeriesMetric {
 		result[idx] = rb.data[i]
 		idx++
 	}
-	
+
 	return result
 }
 
@@ -81,23 +81,23 @@ func (rb *RingBuffer) GetAll() []TimeSeriesMetric {
 func (rb *RingBuffer) GetRecent(n int) []TimeSeriesMetric {
 	rb.mu.RLock()
 	defer rb.mu.RUnlock()
-	
+
 	if n > rb.size {
 		n = rb.size
 	}
-	
+
 	if n == 0 {
 		return []TimeSeriesMetric{}
 	}
-	
+
 	result := make([]TimeSeriesMetric, n)
-	
+
 	// Start from most recent
 	for i := 0; i < n; i++ {
 		idx := (rb.head - 1 - i + rb.capacity) % rb.capacity
 		result[n-1-i] = rb.data[idx]
 	}
-	
+
 	return result
 }
 
@@ -105,16 +105,16 @@ func (rb *RingBuffer) GetRecent(n int) []TimeSeriesMetric {
 func (rb *RingBuffer) GetAverage() float64 {
 	rb.mu.RLock()
 	defer rb.mu.RUnlock()
-	
+
 	if rb.size == 0 {
 		return 0.0
 	}
-	
+
 	sum := 0.0
 	for i := 0; i < rb.size; i++ {
 		sum += rb.data[i].Value
 	}
-	
+
 	return sum / float64(rb.size)
 }
 
@@ -122,18 +122,18 @@ func (rb *RingBuffer) GetAverage() float64 {
 func (rb *RingBuffer) GetMax() float64 {
 	rb.mu.RLock()
 	defer rb.mu.RUnlock()
-	
+
 	if rb.size == 0 {
 		return 0.0
 	}
-	
+
 	max := rb.data[0].Value
 	for i := 1; i < rb.size; i++ {
 		if rb.data[i].Value > max {
 			max = rb.data[i].Value
 		}
 	}
-	
+
 	return max
 }
 
@@ -141,18 +141,18 @@ func (rb *RingBuffer) GetMax() float64 {
 func (rb *RingBuffer) GetMin() float64 {
 	rb.mu.RLock()
 	defer rb.mu.RUnlock()
-	
+
 	if rb.size == 0 {
 		return 0.0
 	}
-	
+
 	min := rb.data[0].Value
 	for i := 1; i < rb.size; i++ {
 		if rb.data[i].Value < min {
 			min = rb.data[i].Value
 		}
 	}
-	
+
 	return min
 }
 
@@ -173,13 +173,13 @@ func (rb *RingBuffer) Clear() {
 
 // SystemMetrics tracks system-wide metrics over time
 type SystemMetrics struct {
-	Throughput      *RingBuffer // messages per second
-	DeliveryRate    *RingBuffer // percentage of messages delivered
-	AverageLatency  *RingBuffer // average message latency
-	TotalMessages   *RingBuffer // cumulative messages sent
-	ActiveNodes     *RingBuffer // number of active nodes
-	FailedNodes     *RingBuffer // number of failed nodes
-	
+	Throughput     *RingBuffer // messages per second
+	DeliveryRate   *RingBuffer // percentage of messages delivered
+	AverageLatency *RingBuffer // average message latency
+	TotalMessages  *RingBuffer // cumulative messages sent
+	ActiveNodes    *RingBuffer // number of active nodes
+	FailedNodes    *RingBuffer // number of failed nodes
+
 	mu sync.RWMutex
 }
 
@@ -196,11 +196,11 @@ func NewSystemMetrics(capacity int) *SystemMetrics {
 }
 
 // RecordSnapshot records a snapshot of system metrics
-func (sm *SystemMetrics) RecordSnapshot(timestamp float64, throughput, deliveryRate, avgLatency float64, 
-                                        totalMessages int64, activeNodes, failedNodes int) {
+func (sm *SystemMetrics) RecordSnapshot(timestamp float64, throughput, deliveryRate, avgLatency float64,
+	totalMessages int64, activeNodes, failedNodes int) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	sm.Throughput.Add(timestamp, throughput)
 	sm.DeliveryRate.Add(timestamp, deliveryRate)
 	sm.AverageLatency.Add(timestamp, avgLatency)
@@ -213,7 +213,7 @@ func (sm *SystemMetrics) RecordSnapshot(timestamp float64, throughput, deliveryR
 func (sm *SystemMetrics) GetSummary() MetricsSummary {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	return MetricsSummary{
 		AvgThroughput:   sm.Throughput.GetAverage(),
 		MaxThroughput:   sm.Throughput.GetMax(),
@@ -239,18 +239,18 @@ type MetricsSummary struct {
 // String returns a string representation
 func (ms MetricsSummary) String() string {
 	return fmt.Sprintf("Throughput: %.2f msg/s (max: %.2f), Delivery: %.1f%%, Latency: %.3fs (%.3f-%.3fs), Samples: %d",
-		ms.AvgThroughput, ms.MaxThroughput, ms.AvgDeliveryRate*100, 
+		ms.AvgThroughput, ms.MaxThroughput, ms.AvgDeliveryRate*100,
 		ms.AvgLatency, ms.MinLatency, ms.MaxLatency, ms.DataPoints)
 }
 
 // NodeMetricsTimeSeries tracks per-node metrics over time
 type NodeMetricsTimeSeries struct {
-	NodeID         string
-	MessagesSent   *RingBuffer
-	MessagesRecv   *RingBuffer
-	QueueDepth     *RingBuffer
-	Utilization    *RingBuffer
-	mu             sync.RWMutex
+	NodeID       string
+	MessagesSent *RingBuffer
+	MessagesRecv *RingBuffer
+	QueueDepth   *RingBuffer
+	Utilization  *RingBuffer
+	mu           sync.RWMutex
 }
 
 // NewNodeMetricsTimeSeries creates new node metrics time series
@@ -268,7 +268,7 @@ func NewNodeMetricsTimeSeries(nodeID string, capacity int) *NodeMetricsTimeSerie
 func (nmt *NodeMetricsTimeSeries) RecordSnapshot(timestamp float64, sent, recv int64, queueDepth int, utilization float64) {
 	nmt.mu.Lock()
 	defer nmt.mu.Unlock()
-	
+
 	nmt.MessagesSent.Add(timestamp, float64(sent))
 	nmt.MessagesRecv.Add(timestamp, float64(recv))
 	nmt.QueueDepth.Add(timestamp, float64(queueDepth))
@@ -277,12 +277,12 @@ func (nmt *NodeMetricsTimeSeries) RecordSnapshot(timestamp float64, sent, recv i
 
 // LinkMetricsTimeSeries tracks per-link metrics over time
 type LinkMetricsTimeSeries struct {
-	LinkID       string
-	Utilization  *RingBuffer
-	PacketLoss   *RingBuffer
-	Latency      *RingBuffer
-	BytesSent    *RingBuffer
-	mu           sync.RWMutex
+	LinkID      string
+	Utilization *RingBuffer
+	PacketLoss  *RingBuffer
+	Latency     *RingBuffer
+	BytesSent   *RingBuffer
+	mu          sync.RWMutex
 }
 
 // NewLinkMetricsTimeSeries creates new link metrics time series
@@ -300,7 +300,7 @@ func NewLinkMetricsTimeSeries(linkID string, capacity int) *LinkMetricsTimeSerie
 func (lmt *LinkMetricsTimeSeries) RecordSnapshot(timestamp, utilization, packetLoss, latency float64, bytesSent int64) {
 	lmt.mu.Lock()
 	defer lmt.mu.Unlock()
-	
+
 	lmt.Utilization.Add(timestamp, utilization)
 	lmt.PacketLoss.Add(timestamp, packetLoss)
 	lmt.Latency.Add(timestamp, latency)
@@ -309,11 +309,11 @@ func (lmt *LinkMetricsTimeSeries) RecordSnapshot(timestamp, utilization, packetL
 
 // MetricsCollector aggregates all metrics
 type MetricsCollector struct {
-	System      *SystemMetrics
-	Nodes       map[string]*NodeMetricsTimeSeries
-	Links       map[string]*LinkMetricsTimeSeries
-	capacity    int
-	mu          sync.RWMutex
+	System   *SystemMetrics
+	Nodes    map[string]*NodeMetricsTimeSeries
+	Links    map[string]*LinkMetricsTimeSeries
+	capacity int
+	mu       sync.RWMutex
 }
 
 // NewMetricsCollector creates a new metrics collector
@@ -330,11 +330,11 @@ func NewMetricsCollector(capacity int) *MetricsCollector {
 func (mc *MetricsCollector) GetOrCreateNodeMetrics(nodeID string) *NodeMetricsTimeSeries {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	
+
 	if metrics, exists := mc.Nodes[nodeID]; exists {
 		return metrics
 	}
-	
+
 	metrics := NewNodeMetricsTimeSeries(nodeID, mc.capacity)
 	mc.Nodes[nodeID] = metrics
 	return metrics
@@ -344,11 +344,11 @@ func (mc *MetricsCollector) GetOrCreateNodeMetrics(nodeID string) *NodeMetricsTi
 func (mc *MetricsCollector) GetOrCreateLinkMetrics(linkID string) *LinkMetricsTimeSeries {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	
+
 	if metrics, exists := mc.Links[linkID]; exists {
 		return metrics
 	}
-	
+
 	metrics := NewLinkMetricsTimeSeries(linkID, mc.capacity)
 	mc.Links[linkID] = metrics
 	return metrics
@@ -372,7 +372,7 @@ func (mc *MetricsCollector) GetLinkMetrics(linkID string) *LinkMetricsTimeSeries
 func (mc *MetricsCollector) Clear() {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	
+
 	mc.System = NewSystemMetrics(mc.capacity)
 	mc.Nodes = make(map[string]*NodeMetricsTimeSeries)
 	mc.Links = make(map[string]*LinkMetricsTimeSeries)
