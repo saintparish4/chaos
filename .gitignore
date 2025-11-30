@@ -27,5 +27,4 @@ go.work
 Thumbs.db
 
 # Build artifacts
-simulator
 node-server
