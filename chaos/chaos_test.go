@@ -10,7 +10,7 @@ func TestFailureInjectorNodeFailure(t *testing.T) {
 	// Create simple topology
 	config := simulator.GenerateRingTopology(5)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 	injector := NewFailureInjector(sim)
 
 	// Inject node failure
@@ -29,7 +29,7 @@ func TestFailureInjectorNodeFailure(t *testing.T) {
 func TestFailureInjectorLinkFailure(t *testing.T) {
 	config := simulator.GenerateRingTopology(4)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 	injector := NewFailureInjector(sim)
 
 	// Inject link failure
@@ -51,7 +51,7 @@ func TestFailureInjectorLinkFailure(t *testing.T) {
 func TestNetworkPartition(t *testing.T) {
 	config := simulator.GenerateMeshTopology(4)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 	injector := NewFailureInjector(sim)
 
 	// Create partition
@@ -77,7 +77,7 @@ func TestNetworkPartition(t *testing.T) {
 func TestRandomNodeFailure(t *testing.T) {
 	config := simulator.GenerateRingTopology(10)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 	injector := NewFailureInjector(sim)
 
 	// Inject random failures
@@ -102,7 +102,7 @@ func TestRandomNodeFailure(t *testing.T) {
 func TestCascadingFailure(t *testing.T) {
 	config := simulator.GenerateMeshTopology(6)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 	injector := NewFailureInjector(sim)
 
 	// Trigger cascading failure
@@ -128,7 +128,7 @@ func TestCascadingFailure(t *testing.T) {
 func TestChaosScenarios(t *testing.T) {
 	config := simulator.GenerateRingTopology(7)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 	injector := NewFailureInjector(sim)
 
 	// Test RandomNodeFailureScenario
@@ -155,7 +155,7 @@ func TestChaosScenarios(t *testing.T) {
 func TestChaosScheduler(t *testing.T) {
 	config := simulator.GenerateRingTopology(5)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 	injector := NewFailureInjector(sim)
 	scheduler := NewChaosScheduler(injector)
 
@@ -193,7 +193,7 @@ func TestChaosScheduler(t *testing.T) {
 func TestResilienceManager(t *testing.T) {
 	config := simulator.GenerateRingTopology(6)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 
 	rm := NewResilienceManager(sim)
 
@@ -243,7 +243,7 @@ func TestCircuitBreaker(t *testing.T) {
 func TestRetryManager(t *testing.T) {
 	config := simulator.GenerateRingTopology(3)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 
 	rm := NewRetryManager(sim)
 	rm.Enable(3, 0.1)
@@ -275,7 +275,7 @@ func TestRetryManager(t *testing.T) {
 func TestHealthChecker(t *testing.T) {
 	config := simulator.GenerateRingTopology(4)
 	topo := buildTestTopology(config)
-	sim := simulator.NewEventDrivenSimulator(topo, 1.0)
+	sim := simulator.NewEventDrivenSimulatorWithSpeed(topo, 1.0)
 
 	hc := NewHealthChecker(sim, 1.0)
 	hc.Enable()

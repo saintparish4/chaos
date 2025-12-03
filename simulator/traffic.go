@@ -6,6 +6,53 @@ import (
 	"math/rand"
 )
 
+// TrafficType represents different traffic patterns
+type TrafficType string
+
+const (
+	TrafficTypePoisson  TrafficType = "poisson"
+	TrafficTypeBursty   TrafficType = "bursty"
+	TrafficTypeConstant TrafficType = "constant"
+)
+
+// TrafficFlowConfig is a configuration struct for creating traffic flows
+type TrafficFlowConfig struct {
+	Source      string
+	Dest        string
+	Type        TrafficType
+	Rate        float64 // messages per second
+	MessageSize int
+	StartTime   float64
+	Duration    float64
+	// Bursty-specific parameters
+	BurstSize   int
+	BurstPeriod float64
+}
+
+// CreateTrafficFlow creates a TrafficFlow from a config
+func CreateTrafficFlow(id string, cfg TrafficFlowConfig) *TrafficFlow {
+	var generator TrafficGenerator
+
+	switch cfg.Type {
+	case TrafficTypeBursty:
+		burstSize := cfg.BurstSize
+		if burstSize == 0 {
+			burstSize = 10
+		}
+		burstPeriod := cfg.BurstPeriod
+		if burstPeriod == 0 {
+			burstPeriod = 1.0
+		}
+		generator = NewBurstyTrafficGenerator(cfg.Source, cfg.Dest, cfg.Rate, burstSize, burstPeriod, cfg.MessageSize)
+	case TrafficTypeConstant:
+		generator = NewConstantTrafficGenerator(cfg.Source, cfg.Dest, cfg.Rate, cfg.MessageSize)
+	default: // TrafficTypePoisson
+		generator = NewPoissonTrafficGenerator(cfg.Source, cfg.Dest, cfg.Rate, cfg.MessageSize)
+	}
+
+	return NewTrafficFlow(id, generator, cfg.StartTime, cfg.StartTime+cfg.Duration)
+}
+
 // TrafficGenerator generates traffic patterns for simulation
 type TrafficGenerator interface {
 	GenerateEvents(startTime, endTime float64) []*SimulationEvent

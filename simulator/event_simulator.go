@@ -43,8 +43,13 @@ type EventDrivenSimulator struct {
 	totalLatency           float64
 }
 
-// NewEventDrivenSimulator creates a new event-driven simulator
-func NewEventDrivenSimulator(topo *Topology, speedMultiple float64) *EventDrivenSimulator {
+// NewEventDrivenSimulator creates a new event-driven simulator with default speed (1.0x)
+func NewEventDrivenSimulator(topo *Topology) *EventDrivenSimulator {
+	return NewEventDrivenSimulatorWithSpeed(topo, 1.0)
+}
+
+// NewEventDrivenSimulatorWithSpeed creates a new event-driven simulator with custom speed
+func NewEventDrivenSimulatorWithSpeed(topo *Topology, speedMultiple float64) *EventDrivenSimulator {
 	sim := &EventDrivenSimulator{
 		topology:        topo,
 		nodes:           make(map[string]*nodes.Node),
@@ -570,4 +575,267 @@ func (sim *EventDrivenSimulator) PrintStatus() {
 
 	summary := sim.metrics.System.GetSummary()
 	fmt.Printf("Metrics: %s\n", summary.String())
+}
+
+// EnableMetrics enables metrics collection at the specified interval
+func (sim *EventDrivenSimulator) EnableMetrics(interval float64) {
+	sim.mu.Lock()
+	defer sim.mu.Unlock()
+	sim.metricsInterval = interval
+}
+
+// Reset resets the simulator to its initial state
+func (sim *EventDrivenSimulator) Reset() {
+	sim.mu.Lock()
+	defer sim.mu.Unlock()
+
+	// Reset clock
+	sim.clock.Reset()
+
+	// Clear event queue
+	sim.eventQueue = NewEventQueue()
+
+	// Reset all nodes
+	for _, node := range sim.nodes {
+		node.SetState(nodes.StateActive)
+	}
+
+	// Reactivate all links
+	for _, link := range sim.simulatedLinks {
+		link.SetActive(true)
+	}
+
+	// Clear traffic manager
+	sim.trafficMgr = NewTrafficManager()
+
+	// Clear metrics
+	sim.metrics.Clear()
+
+	// Clear message tracking
+	sim.trackerMu.Lock()
+	sim.messageTracker = make(map[string]*MessageTrack)
+	sim.totalMessagesSent = 0
+	sim.totalMessagesDelivered = 0
+	sim.totalLatency = 0
+	sim.trackerMu.Unlock()
+
+	sim.running = false
+	sim.paused = false
+}
+
+// SetSpeed sets the simulation speed multiplier
+func (sim *EventDrivenSimulator) SetSpeed(speed float64) {
+	sim.clock.SetSpeed(speed)
+}
+
+// GetCurrentTime returns the current simulation time
+func (sim *EventDrivenSimulator) GetCurrentTime() float64 {
+	return sim.clock.CurrentTime()
+}
+
+// AddTrafficFlowConfig adds a traffic flow from a config struct
+func (sim *EventDrivenSimulator) AddTrafficFlowConfig(cfg TrafficFlowConfig) {
+	flowID := fmt.Sprintf("flow-%s-%s-%.2f", cfg.Source, cfg.Dest, cfg.StartTime)
+	flow := CreateTrafficFlow(flowID, cfg)
+	sim.trafficMgr.AddFlow(flow)
+}
+
+// SystemMetricsSnapshot represents a snapshot of system-wide metrics
+type SystemMetricsSnapshot struct {
+	TotalThroughput        float64
+	DeliveryRate           float64
+	AverageLatency         float64
+	ActiveNodes            int
+	FailedNodes            int
+	TotalMessagesSent      int64
+	TotalMessagesDelivered int64
+}
+
+// GetSystemMetrics returns current system-wide metrics
+func (sim *EventDrivenSimulator) GetSystemMetrics() SystemMetricsSnapshot {
+	sim.trackerMu.RLock()
+	deliveryRate := 0.0
+	if sim.totalMessagesSent > 0 {
+		deliveryRate = float64(sim.totalMessagesDelivered) / float64(sim.totalMessagesSent)
+	}
+	avgLatency := 0.0
+	if sim.totalMessagesDelivered > 0 {
+		avgLatency = sim.totalLatency / float64(sim.totalMessagesDelivered)
+	}
+	totalSent := sim.totalMessagesSent
+	totalDelivered := sim.totalMessagesDelivered
+	sim.trackerMu.RUnlock()
+
+	// Count active/failed nodes
+	activeNodes := 0
+	failedNodes := 0
+	for _, node := range sim.nodes {
+		if node.GetState() == nodes.StateActive {
+			activeNodes++
+		} else if node.GetState() == nodes.StateFailed {
+			failedNodes++
+		}
+	}
+
+	throughput := 0.0
+	currentTime := sim.clock.CurrentTime()
+	if currentTime > 0 {
+		throughput = float64(totalSent) / currentTime
+	}
+
+	return SystemMetricsSnapshot{
+		TotalThroughput:        throughput,
+		DeliveryRate:           deliveryRate,
+		AverageLatency:         avgLatency,
+		ActiveNodes:            activeNodes,
+		FailedNodes:            failedNodes,
+		TotalMessagesSent:      totalSent,
+		TotalMessagesDelivered: totalDelivered,
+	}
+}
+
+// NodeMetricsSnapshot represents a snapshot of node metrics
+type NodeMetricsSnapshot struct {
+	MessagesSent     int64
+	MessagesReceived int64
+	QueueDepth       int
+}
+
+// GetNodeMetrics returns metrics for a specific node
+func (sim *EventDrivenSimulator) GetNodeMetrics(nodeID string) *NodeMetricsSnapshot {
+	node, exists := sim.nodes[nodeID]
+	if !exists {
+		return nil
+	}
+
+	sent, recv, _, queueDepth := node.GetMetrics()
+	return &NodeMetricsSnapshot{
+		MessagesSent:     sent,
+		MessagesReceived: recv,
+		QueueDepth:       queueDepth,
+	}
+}
+
+// LinkMetricsSnapshot represents a snapshot of link metrics
+type LinkMetricsSnapshot struct {
+	Utilization    float64
+	PacketLossRate float64
+	BytesSent      int64
+}
+
+// GetLinkMetrics returns metrics for a specific link
+func (sim *EventDrivenSimulator) GetLinkMetrics(source, dest string) *LinkMetricsSnapshot {
+	linkID := fmt.Sprintf("%s->%s", source, dest)
+	link, exists := sim.simulatedLinks[linkID]
+	if !exists {
+		return nil
+	}
+
+	metrics := link.GetMetrics()
+	sent, _, lossRate, _, util := metrics.GetStats()
+
+	return &LinkMetricsSnapshot{
+		Utilization:    util,
+		PacketLossRate: lossRate,
+		BytesSent:      sent,
+	}
+}
+
+// EventStatsSnapshot represents a snapshot of event statistics
+type EventStatsSnapshot struct {
+	TotalEvents         int64
+	MessageSentEvents   int64
+	MessageArriveEvents int64
+}
+
+// GetEventStats returns event statistics
+func (sim *EventDrivenSimulator) GetEventStats() EventStatsSnapshot {
+	return EventStatsSnapshot{
+		TotalEvents:         sim.eventStats.TotalEvents,
+		MessageSentEvents:   sim.eventStats.EventsByType[EventMessageSend],
+		MessageArriveEvents: sim.eventStats.EventsByType[EventMessageArrive],
+	}
+}
+
+// TimeSeriesSample represents a single time series data point
+type TimeSeriesSample struct {
+	Timestamp      float64
+	Throughput     float64
+	AverageLatency float64
+	DeliveryRate   float64
+}
+
+// TimeSeriesData wraps time series metrics data
+type TimeSeriesData struct {
+	metrics *MetricsCollector
+}
+
+// GetRecentSamples returns recent time series samples
+func (tsd *TimeSeriesData) GetRecentSamples(n int) []TimeSeriesSample {
+	if tsd.metrics == nil {
+		return nil
+	}
+
+	throughput := tsd.metrics.System.Throughput.GetRecent(n)
+	latency := tsd.metrics.System.AverageLatency.GetRecent(n)
+	delivery := tsd.metrics.System.DeliveryRate.GetRecent(n)
+
+	// Combine into samples
+	samples := make([]TimeSeriesSample, 0, len(throughput))
+	for i := 0; i < len(throughput); i++ {
+		sample := TimeSeriesSample{
+			Timestamp:  throughput[i].Timestamp,
+			Throughput: throughput[i].Value,
+		}
+		if i < len(latency) {
+			sample.AverageLatency = latency[i].Value
+		}
+		if i < len(delivery) {
+			sample.DeliveryRate = delivery[i].Value
+		}
+		samples = append(samples, sample)
+	}
+
+	return samples
+}
+
+// GetTimeSeriesData returns time series data wrapper
+func (sim *EventDrivenSimulator) GetTimeSeriesData() *TimeSeriesData {
+	return &TimeSeriesData{metrics: sim.metrics}
+}
+
+// Step advances the simulation by processing one event or a small time step
+func (sim *EventDrivenSimulator) Step() {
+	sim.mu.Lock()
+	if !sim.running {
+		sim.running = true
+		// Generate traffic events if this is the first step
+		trafficEvents := sim.trafficMgr.GenerateAllEvents()
+		for _, event := range trafficEvents {
+			sim.eventQueue.Enqueue(event)
+		}
+	}
+	sim.mu.Unlock()
+
+	// Process next event if available
+	nextEvent := sim.eventQueue.Peek()
+	if nextEvent == nil {
+		// No events, just advance time slightly
+		sim.clock.SetTime(sim.clock.CurrentTime() + 0.1)
+		return
+	}
+
+	// Process the event
+	event := sim.eventQueue.Dequeue()
+	sim.clock.SetTime(event.Timestamp)
+
+	// Check if we should collect metrics
+	if sim.clock.CurrentTime() >= sim.lastMetricsTime+sim.metricsInterval {
+		sim.collectMetrics()
+		sim.lastMetricsTime = sim.clock.CurrentTime()
+	}
+
+	// Process the event
+	sim.processEvent(event)
+	sim.eventStats.RecordEvent(event.Type, 0)
 }

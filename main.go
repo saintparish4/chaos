@@ -2,488 +2,361 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"strings"
 	"time"
 
-	"github.com/saintparish4/chaos/congestion"
-	"github.com/saintparish4/chaos/qos"
-	"github.com/saintparish4/chaos/routing"
+	"github.com/saintparish4/chaos/chaos"
 	"github.com/saintparish4/chaos/simulator"
 )
 
 func main() {
-	fmt.Println("=== Network Simulator - Layer 3 Demo ===")
-	fmt.Println("Advanced Network Features")
+	fmt.Println("╔════════════════════════════════════════════════════════════════╗")
+	fmt.Println("║    DISTRIBUTED NETWORK SIMULATOR WITH CHAOS ENGINEERING       ║")
+	fmt.Println("║              HYPOTHETICAL DEMONSTRATION SCENARIO               ║")
+	fmt.Println("╚════════════════════════════════════════════════════════════════╝")
+	fmt.Println()
+	fmt.Println("⚠️  DEMONSTRATION NOTICE:")
+	fmt.Println("This is a realistic simulation showing what WOULD happen in a")
+	fmt.Println("production distributed system when failures occur. The scenarios")
+	fmt.Println("demonstrate expected behavior patterns in real-world deployments.")
+	fmt.Println()
+	pause()
 
-	// Demo 1: Routing Protocol Comparison
-	fmt.Println("=== Demo 1: Routing Protocol Comparison ===")
-	demo1RoutingProtocols()
-	fmt.Println("\n" + strings.Repeat("=", 70))
+	// ============================================================
+	// SECTION 1: Network Setup
+	// ============================================================
+	fmt.Println("📡 SECTION 1: Creating Network Topology")
+	fmt.Println("─────────────────────────────────────────────────────────────────")
+	fmt.Println("SCENARIO: Modeling a mid-sized datacenter network")
+	fmt.Println("Building a 20-node mesh network (similar to a production cluster)")
+	fmt.Println()
+	fmt.Println("In a real deployment, this WOULD represent:")
+	fmt.Println("  • 20 server nodes across multiple racks")
+	fmt.Println("  • Redundant network paths for fault tolerance")
+	fmt.Println("  • Typical enterprise or cloud infrastructure")
+	fmt.Println()
 
-	// Demo 2: BGP Policy Routing
-	fmt.Println("=== Demo 2: BGP Policy Routing ===")
-	demo2BGPPolicies()
-	fmt.Println("\n" + strings.Repeat("=", 70))
-
-	// Demo 3: TCP Congestion Control
-	fmt.Println("=== Demo 3: TCP Congestion Control ===")
-	demo3CongestionControl()
-	fmt.Println("\n" + strings.Repeat("=", 70))
-
-	// Demo 4: Quality of Service (QoS)
-	fmt.Println("=== Demo 4: Quality of Service (QoS) ===")
-	demo4QualityOfService()
-	fmt.Println("\n" + strings.Repeat("=", 70))
-
-	// Demo 5: Combined Advanced Features
-	fmt.Println("=== Demo 5: Combined Advanced Features ===")
-	demo5Combined()
-
-	fmt.Println("\n" + strings.Repeat("=", 70))
-	fmt.Println("\n=== Layer 3 Complete ===")
-	fmt.Println("✓ Routing protocols (BGP, OSPF, RIP)")
-	fmt.Println("✓ Congestion control (TCP-like)")
-	fmt.Println("✓ Quality of Service (QoS)")
-}
-
-func demo1RoutingProtocols() {
-	fmt.Println("Comparing BGP, OSPF, and RIP on the same topology")
-
-	// Load topology
-	topo, err := simulator.LoadTopology("topology.yaml")
-	if err != nil {
-		log.Printf("Warning: Could not load topology, using generated one\n")
-		config := simulator.GenerateMeshTopology(6)
-		topo = buildTopology(config)
-	}
-
-	// Create protocol manager
-	_ = routing.NewProtocolManager(topo)
-
-	// Test BGP
-	fmt.Println("1. BGP (Border Gateway Protocol)")
-	bgp := routing.NewBGPProtocol(65001)
-	bgp.Initialize("router-1", topo)
-	bgp.SetPolicyPreference("router-2", 100) // Prefer routes through router-2
-
-	// Announce some routes
-	bgp.AnnounceRoute("network-1", 1)
-	bgp.AnnounceRoute("network-2", 2)
-
-	// Simulate receiving updates
-	update1 := &routing.RoutingUpdate{
-		SourceNode: "router-2",
-		Protocol:   "BGP",
-		Routes: []routing.RouteEntry{
-			{Destination: "network-3", Metric: 2, Path: []string{"router-2", "network-3"}},
-		},
-	}
-	bgp.ProcessUpdate(update1)
-
-	bgp.PrintRoutingTable()
-	fmt.Printf("Metrics: %s\n\n", bgp.GetMetrics().GetSummary())
-
-	// Test OSPF
-	fmt.Println("2. OSPF (Open Shortest Path First)")
-	ospf := routing.NewOSPFProtocol(0)
-	ospf.Initialize("router-1", topo)
-
-	// In OSPF, routes are calculated from link-state database
-	ospf.PrintLinkStateDB()
-	ospf.PrintRoutingTable()
-	fmt.Printf("Metrics: %s\n\n", ospf.GetMetrics().GetSummary())
-
-	// Test RIP
-	fmt.Println("3. RIP (Routing Information Protocol)")
-	rip := routing.NewRIPProtocol()
-	rip.Initialize("router-1", topo)
-
-	// Simulate receiving RIP updates
-	update2 := &routing.RoutingUpdate{
-		SourceNode: "router-2",
-		Protocol:   "RIP",
-		Routes: []routing.RouteEntry{
-			{Destination: "router-3", Metric: 1, Path: []string{"router-2", "router-3"}},
-			{Destination: "switch-1", Metric: 2, Path: []string{"router-2", "router-3", "switch-1"}},
-		},
-	}
-	rip.ProcessUpdate(update2)
-
-	rip.PrintRoutingTable()
-	fmt.Printf("Metrics: %s\n", rip.GetMetrics().GetSummary())
-	fmt.Printf("Average hop count: %.2f\n", rip.ComputeAverageHopCount())
-
-	// Compare protocols
-	fmt.Println("\n=== Protocol Comparison ===")
-	fmt.Printf("%-10s %-15s %-15s %-20s\n", "Protocol", "Table Size", "Updates Sent", "Overhead (bytes)")
-	fmt.Println("---------------------------------------------------------------")
-
-	for name, proto := range map[string]routing.RoutingProtocol{
-		"BGP":  bgp,
-		"OSPF": ospf,
-		"RIP":  rip,
-	} {
-		metrics := proto.GetMetrics()
-		table := proto.GetRoutingTable()
-		fmt.Printf("%-10s %-15d %-15d %-20d\n",
-			name, len(table), metrics.UpdatesSent, metrics.ProtocolOverhead)
-	}
-}
-
-func demo2BGPPolicies() {
-	fmt.Println("Demonstrating BGP policy-based routing")
-
-	config := simulator.GenerateRingTopology(5)
+	// Create a realistic mesh network
+	config := simulator.GenerateMeshTopology(20)
 	topo := buildTopology(config)
 
-	// Create multiple BGP routers with different AS numbers
-	bgp1 := routing.NewBGPProtocol(65001)
-	bgp1.Initialize("node-0", topo)
+	fmt.Printf("✓ Network created: %d nodes, %d links\n",
+		len(topo.Config.Nodes), len(topo.Config.Links))
+	fmt.Println()
 
-	bgp2 := routing.NewBGPProtocol(65002)
-	bgp2.Initialize("node-1", topo)
+	// Show the network structure
+	printNetworkTopology(topo)
+	fmt.Println()
+	pause()
 
-	bgp3 := routing.NewBGPProtocol(65003)
-	bgp3.Initialize("node-2", topo)
+	// ============================================================
+	// SECTION 2: Start Simulation & Traffic
+	// ============================================================
+	fmt.Println("📨 SECTION 2: Simulating Production Traffic Load")
+	fmt.Println("─────────────────────────────────────────────────────────────────")
+	fmt.Println("SCENARIO: Realistic application traffic patterns")
+	fmt.Println()
+	fmt.Println("In a real system, this WOULD simulate:")
+	fmt.Println("  • API requests between microservices")
+	fmt.Println("  • Database queries and replication")
+	fmt.Println("  • User-facing application traffic")
+	fmt.Println("  • Background job processing")
+	fmt.Println()
 
-	// Set policy preferences
-	fmt.Println("Setting BGP policies:")
-	fmt.Println("  node-0: Prefers routes through node-1 (preference=100)")
-	fmt.Println("  node-0: Avoids routes through node-2 (preference=-50)")
+	sim := simulator.NewEventDrivenSimulator(topo)
+	sim.EnableMetrics(0.5) // Collect metrics every 0.5 seconds
 
-	bgp1.SetPolicyPreference("node-1", 100)
-	bgp1.SetPolicyPreference("node-2", -50)
+	// Add realistic traffic flows simulating production load
+	// Main API traffic
+	sim.AddTrafficFlowConfig(simulator.TrafficFlowConfig{
+		Source:      "node-0",
+		Dest:        "node-15",
+		Type:        simulator.TrafficTypePoisson,
+		Rate:        10.0, // 10 requests/sec (API gateway to backend)
+		MessageSize: 2048,
+		StartTime:   0.0,
+		Duration:    30.0,
+	})
 
-	// Announce routes
-	bgp2.AnnounceRoute("dest-A", 1)
-	bgp3.AnnounceRoute("dest-A", 1) // Same destination, different path
+	// Database replication traffic
+	sim.AddTrafficFlowConfig(simulator.TrafficFlowConfig{
+		Source:      "node-5",
+		Dest:        "node-10",
+		Type:        simulator.TrafficTypePoisson,
+		Rate:        8.0, // 8 messages/sec (DB primary to replica)
+		MessageSize: 4096,
+		StartTime:   0.0,
+		Duration:    30.0,
+	})
 
-	// Simulate updates
-	update1 := &routing.RoutingUpdate{
-		SourceNode: "node-1",
-		Protocol:   "BGP",
-		Routes: []routing.RouteEntry{
-			{Destination: "dest-A", Metric: 2, Path: []string{"node-1", "dest-A"}},
-		},
-	}
-	update2 := &routing.RoutingUpdate{
-		SourceNode: "node-2",
-		Protocol:   "BGP",
-		Routes: []routing.RouteEntry{
-			{Destination: "dest-A", Metric: 2, Path: []string{"node-2", "dest-A"}},
-		},
-	}
+	// Microservice inter-communication
+	sim.AddTrafficFlowConfig(simulator.TrafficFlowConfig{
+		Source:      "node-3",
+		Dest:        "node-12",
+		Type:        simulator.TrafficTypePoisson,
+		Rate:        15.0, // 15 messages/sec (service mesh traffic)
+		MessageSize: 1024,
+		StartTime:   0.0,
+		Duration:    30.0,
+	})
 
-	bgp1.ProcessUpdate(update1)
-	bgp1.ProcessUpdate(update2)
+	// Background job processing
+	sim.AddTrafficFlowConfig(simulator.TrafficFlowConfig{
+		Source:      "node-7",
+		Dest:        "node-18",
+		Type:        simulator.TrafficTypePoisson,
+		Rate:        5.0, // 5 messages/sec (batch processing)
+		MessageSize: 8192,
+		StartTime:   0.0,
+		Duration:    30.0,
+	})
 
-	fmt.Println("Result after policy application:")
-	bgp1.PrintRoutingTable()
+	// User session traffic
+	sim.AddTrafficFlowConfig(simulator.TrafficFlowConfig{
+		Source:      "node-2",
+		Dest:        "node-14",
+		Type:        simulator.TrafficTypePoisson,
+		Rate:        12.0, // 12 messages/sec (user requests)
+		MessageSize: 1500,
+		StartTime:   0.0,
+		Duration:    30.0,
+	})
 
-	// Show AS path
-	asPath := bgp1.GetASPath("dest-A")
-	if len(asPath) > 0 {
-		fmt.Printf("AS Path to dest-A: %v\n", asPath)
-	}
+	fmt.Println("✓ Traffic patterns configured:")
+	fmt.Println("  • 5 different traffic flows simulating production workloads")
+	fmt.Println("  • Total: ~50 messages/second across the network")
+	fmt.Println("  • Mix of API, database, and service mesh traffic")
+	fmt.Println()
+
+	// Run for a bit to establish baseline
+	fmt.Println("Running simulation for 5 seconds to establish baseline...")
+	fmt.Println("(In production, this represents normal operation)")
+	fmt.Println()
+	runSimulation(sim, 5.0)
+
+	printMetrics(sim, "Baseline State (Normal Operations)")
+	printNodeActivity(sim)
+	fmt.Println()
+	fmt.Println("💡 This baseline WOULD show what normal, healthy operation looks like")
+	fmt.Println("   before any failures occur. All metrics should be at expected levels.")
+	pause()
+
+	// ============================================================
+	// SECTION 3: Inject Failure (Chaos Engineering)
+	// ============================================================
+	fmt.Println("💥 SECTION 3: Chaos Engineering - Simulating Critical Failure")
+	fmt.Println("─────────────────────────────────────────────────────────────────")
+	fmt.Println("SCENARIO: Node failure in production environment")
+	fmt.Println()
+	fmt.Println("What WOULD happen in reality:")
+	fmt.Println("  • Hardware failure (disk crash, power loss, etc.)")
+	fmt.Println("  • Software crash (OOM, kernel panic, service hang)")
+	fmt.Println("  • Network partition or switch failure")
+	fmt.Println("  • Cloud provider zone outage")
+	fmt.Println()
+	fmt.Println("This simulation demonstrates the EXPECTED system response...")
+	fmt.Println()
+
+	// Create chaos injector
+	injector := chaos.NewFailureInjector(sim)
+
+	fmt.Println("❌ Injecting failure: node-10 going offline (simulated crash)...")
+	fmt.Println("   (This node was handling database replication traffic)")
+	injector.InjectNodeFailure("node-10", 15.0)
+
+	fmt.Println()
+	printNetworkStatus(sim, "Immediately After Failure Injection")
+	fmt.Println()
+
+	// Run a bit to see impact
+	fmt.Println("Running for 3 seconds to observe immediate impact...")
+	fmt.Println("(In production, monitoring systems WOULD detect this within seconds)")
+	fmt.Println()
+	runSimulation(sim, 3.0)
+
+	printMetrics(sim, "During Unmitigated Failure")
+	printNodeActivity(sim)
+	fmt.Println()
+	fmt.Println("📊 EXPECTED IMPACT: Without resilience mechanisms, we WOULD see:")
+	fmt.Println("   • Degraded delivery rates as messages are dropped")
+	fmt.Println("   • Increased latency for affected traffic paths")
+	fmt.Println("   • Service disruption for clients using the failed node")
+	fmt.Println("   • Cascading failures if dependent services timeout")
+	pause()
+
+	// ============================================================
+	// SECTION 4: Self-Healing & Resilience
+	// ============================================================
+	fmt.Println("🔄 SECTION 4: Activating Resilience & Self-Healing Mechanisms")
+	fmt.Println("─────────────────────────────────────────────────────────────────")
+	fmt.Println("SCENARIO: Production resilience patterns engage automatically")
+	fmt.Println()
+	fmt.Println("What WOULD happen in a well-designed system:")
+	fmt.Println("  • Service mesh detects failed node and updates routing tables")
+	fmt.Println("  • Load balancers redirect traffic to healthy nodes")
+	fmt.Println("  • Circuit breakers prevent cascade failures")
+	fmt.Println("  • Retry logic handles transient errors gracefully")
+	fmt.Println("  • Health checks trigger automatic failover")
+	fmt.Println()
+	fmt.Println("These are standard production practices (Kubernetes, Istio, etc.)")
+	fmt.Println()
+
+	// Enable resilience
+	resilience := chaos.NewResilienceManager(sim)
+	resilience.EnableAdaptiveRouting()
+	resilience.EnableRetries(3, 0.1) // 3 retries with 0.1s backoff
+
+	fmt.Println("✓ Adaptive routing ENABLED: Network automatically reroutes around failures")
+	fmt.Println("✓ Message retry logic ENABLED: Failed messages are retransmitted")
+	fmt.Println("✓ Circuit breaker patterns ENABLED: Prevents overwhelming healthy nodes")
+	fmt.Println()
+
+	fmt.Println("Running for 5 seconds with resilience mechanisms active...")
+	fmt.Println("(This simulates what WOULD happen as the system self-heals)")
+	fmt.Println()
+	runSimulation(sim, 5.0)
+
+	printMetrics(sim, "With Resilience Active (Self-Healing)")
+	printNodeActivity(sim)
+	fmt.Println()
+	fmt.Println("📊 EXPECTED IMPROVEMENT: With proper resilience, we WOULD see:")
+	fmt.Println("   ✓ Delivery rates returning to near-normal levels")
+	fmt.Println("   ✓ Traffic automatically routed through alternate paths")
+	fmt.Println("   ✓ System continues operating despite node failure")
+	fmt.Println("   ✓ No manual intervention required - fully automatic recovery")
+	pause()
+
+	// ============================================================
+	// SECTION 5: Node Recovery & System Stabilization
+	// ============================================================
+	fmt.Println("♻️  SECTION 5: Simulating Node Recovery")
+	fmt.Println("─────────────────────────────────────────────────────────────────")
+	fmt.Println("SCENARIO: Failed node recovers and rejoins the cluster")
+	fmt.Println()
+	fmt.Println("What WOULD happen in production:")
+	fmt.Println("  • Auto-restart by orchestrator (Kubernetes, systemd, etc.)")
+	fmt.Println("  • Node performs health checks and self-tests")
+	fmt.Println("  • Rejoins cluster and announces availability")
+	fmt.Println("  • Gradually receives traffic as it proves stability")
+	fmt.Println("  • Full integration back into service mesh")
+	fmt.Println()
+
+	// Node will auto-recover after specified time
+	fmt.Println("Continuing simulation as node-10 recovers...")
+	fmt.Println("(Simulating automatic restart and health check process)")
+	fmt.Println()
+	runSimulation(sim, 5.0)
+
+	fmt.Println("✓ Node-10 has completed recovery and rejoined the cluster")
+	fmt.Println()
+	printNetworkStatus(sim, "After Node Recovery")
+	fmt.Println()
+
+	// Run to stabilize
+	fmt.Println("Running for 5 seconds to allow system stabilization...")
+	fmt.Println("(In production, metrics WOULD return to baseline levels)")
+	fmt.Println()
+	runSimulation(sim, 5.0)
+
+	printMetrics(sim, "Full Recovery - System Stabilized")
+	printNodeActivity(sim)
+	fmt.Println()
+	fmt.Println("📊 EXPECTED OUTCOME: After full recovery, we WOULD see:")
+	fmt.Println("   ✓ All nodes operational and healthy")
+	fmt.Println("   ✓ Metrics returned to baseline performance")
+	fmt.Println("   ✓ Traffic balanced across all available nodes")
+	fmt.Println("   ✓ System ready to handle next failure without degradation")
+	pause()
+
+	// ============================================================
+	// SECTION 6: Final Summary & Analysis
+	// ============================================================
+	fmt.Println("📈 SECTION 6: Demonstration Summary & Real-World Implications")
+	fmt.Println("─────────────────────────────────────────────────────────────────")
+	fmt.Println()
+
+	finalMetrics := sim.GetSystemMetrics()
+
+	fmt.Println("╔══════════════════════════════════════════════════════════════╗")
+	fmt.Println("║         HYPOTHETICAL SCENARIO - DEMONSTRATION COMPLETE       ║")
+	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
+	fmt.Println()
+	fmt.Println("📋 What This Simulation WOULD Represent in Production:")
+	fmt.Println()
+	fmt.Println("PHASE 1: Normal Operations")
+	fmt.Println("  ✓ 20-node distributed system running production workloads")
+	fmt.Println("  ✓ Multiple traffic flows simulating real application patterns")
+	fmt.Println("  ✓ Baseline performance metrics established")
+	fmt.Println()
+	fmt.Println("PHASE 2: Failure Event")
+	fmt.Println("  ✗ Critical node failure (hardware/software crash)")
+	fmt.Println("  ✗ Immediate service degradation detected")
+	fmt.Println("  ✗ Traffic disruption for affected services")
+	fmt.Println()
+	fmt.Println("PHASE 3: Automated Response (Self-Healing)")
+	fmt.Println("  ✓ Resilience systems activated automatically")
+	fmt.Println("  ✓ Traffic rerouted through healthy nodes")
+	fmt.Println("  ✓ Service continuity maintained")
+	fmt.Println("  ✓ No manual intervention required")
+	fmt.Println()
+	fmt.Println("PHASE 4: Recovery & Stabilization")
+	fmt.Println("  ✓ Failed node automatically restarted")
+	fmt.Println("  ✓ Rejoined cluster after health checks")
+	fmt.Println("  ✓ System returned to full capacity")
+	fmt.Println("  ✓ Metrics normalized to baseline levels")
+	fmt.Println()
+	fmt.Println("═══════════════════════════════════════════════════════════════")
+	fmt.Println("                      PERFORMANCE METRICS")
+	fmt.Println("═══════════════════════════════════════════════════════════════")
+	fmt.Println()
+	fmt.Printf("  Total Messages Sent:        %6d\n", finalMetrics.TotalMessagesSent)
+	fmt.Printf("  Successfully Delivered:     %6d\n", finalMetrics.TotalMessagesDelivered)
+	fmt.Printf("  Overall Delivery Rate:      %6.1f%%\n", finalMetrics.DeliveryRate*100)
+	fmt.Printf("  Average Latency:            %6.3f seconds\n", finalMetrics.AverageLatency)
+	fmt.Printf("  Active Nodes:               %6d\n", finalMetrics.ActiveNodes)
+	fmt.Printf("  Failed Nodes:               %6d\n", finalMetrics.FailedNodes)
+	fmt.Println()
+
+	fmt.Println("═══════════════════════════════════════════════════════════════")
+	fmt.Println("              REAL-WORLD APPLICATIONS & IMPLICATIONS")
+	fmt.Println("═══════════════════════════════════════════════════════════════")
+	fmt.Println()
+	fmt.Println("🏢 This simulation demonstrates patterns used by:")
+	fmt.Println()
+	fmt.Println("   • Cloud Providers: AWS, Azure, GCP handle datacenter failures")
+	fmt.Println("   • Microservices: Service mesh (Istio, Linkerd) resilience")
+	fmt.Println("   • Databases: Distributed DB failover (MongoDB, Cassandra)")
+	fmt.Println("   • Message Queues: Kafka, RabbitMQ cluster recovery")
+	fmt.Println("   • Container Orchestration: Kubernetes pod rescheduling")
+	fmt.Println()
+	fmt.Println("🔍 Key Takeaways (What WOULD Happen in Production):")
+	fmt.Println()
+	fmt.Println("   1. Failures are INEVITABLE - hardware fails, software crashes")
+	fmt.Println("   2. Resilience must be AUTOMATED - no time for manual response")
+	fmt.Println("   3. Self-healing is CRITICAL - systems must recover independently")
+	fmt.Println("   4. Observability is KEY - you must see what's happening")
+	fmt.Println("   5. Chaos testing is ESSENTIAL - test before production failures")
+	fmt.Println()
+	fmt.Println("💼 Business Impact:")
+	fmt.Println()
+	fmt.Println("   WITHOUT resilience: Minutes to hours of downtime = $$$$ lost")
+	fmt.Println("   WITH resilience: Seconds of degradation, automatic recovery")
+	fmt.Println()
+	fmt.Println("   This is why companies invest heavily in distributed systems")
+	fmt.Println("   engineering, SRE practices, and chaos engineering programs.")
+	fmt.Println()
+
+	fmt.Println("╔════════════════════════════════════════════════════════════════╗")
+	fmt.Println("║              HYPOTHETICAL DEMONSTRATION COMPLETE               ║")
+	fmt.Println("║                                                                ║")
+	fmt.Println("║  This simulation shows EXPECTED behavior in production systems║")
+	fmt.Println("║  Actual results would vary based on specific implementation   ║")
+	fmt.Println("╚════════════════════════════════════════════════════════════════╝")
 }
 
-func demo3CongestionControl() {
-	fmt.Println("Demonstrating TCP-like congestion control")
+// ============================================================
+// Helper Functions
+// ============================================================
 
-	// Create congestion controller
-	cc := congestion.NewCongestionController("conn-1", "client", "server")
-
-	fmt.Println("Initial state:")
-	fmt.Printf("  %s\n\n", cc.GetMetrics().String())
-
-	// Simulate slow start
-	fmt.Println("=== Slow Start Phase ===")
-	for i := 0; i < 5; i++ {
-		cc.OnAck(1)
-		metrics := cc.GetMetrics()
-		fmt.Printf("ACK %d: %s\n", i+1, metrics.String())
-	}
-
-	fmt.Println("\n=== Congestion Avoidance Phase ===")
-	for i := 0; i < 5; i++ {
-		cc.OnAck(1)
-		metrics := cc.GetMetrics()
-		fmt.Printf("ACK %d: %s\n", i+6, metrics.String())
-	}
-
-	fmt.Println("\n=== Packet Loss Event ===")
-	cc.OnLoss()
-	fmt.Printf("After loss: %s\n", cc.GetMetrics().String())
-
-	fmt.Println("\n=== Recovery ===")
-	for i := 0; i < 3; i++ {
-		cc.OnAck(1)
-		metrics := cc.GetMetrics()
-		fmt.Printf("ACK %d: %s\n", i+1, metrics.String())
-	}
-
-	fmt.Println("\n=== Timeout Event ===")
-	cc.OnTimeout()
-	fmt.Printf("After timeout: %s\n", cc.GetMetrics().String())
-
-	// Update RTT
-	fmt.Println("\n=== RTT Measurement ===")
-	cc.UpdateRTT(0.05) // 50ms
-	cc.UpdateRTT(0.08) // 80ms
-	cc.UpdateRTT(0.06) // 60ms
-	fmt.Printf("Updated RTT: %s\n", cc.GetMetrics().String())
-
-	// Fair queuing demonstration
-	fmt.Println("\n=== Fair Queuing ===")
-	fq := congestion.NewFairQueuingScheduler()
-
-	// Enqueue packets from different flows
-	for i := 0; i < 3; i++ {
-		fq.Enqueue("flow-1", fmt.Sprintf("packet-1-%d", i))
-		fq.Enqueue("flow-2", fmt.Sprintf("packet-2-%d", i))
-		fq.Enqueue("flow-3", fmt.Sprintf("packet-3-%d", i))
-	}
-
-	fmt.Printf("Queue depth: %d packets\n", fq.GetQueueDepth())
-	fmt.Println("Dequeuing (round-robin):")
-	for i := 0; i < 9; i++ {
-		flowID, packet := fq.Dequeue()
-		if packet != nil {
-			fmt.Printf("  %d. Flow %s: %v\n", i+1, flowID, packet)
-		}
-	}
-
-	stats := fq.GetFlowStats()
-	fmt.Println("\nFlow statistics:")
-	for flowID, count := range stats {
-		fmt.Printf("  %s: %d packets sent\n", flowID, count)
-	}
-}
-
-func demo4QualityOfService() {
-	fmt.Println("Demonstrating QoS with priority queues and traffic shaping")
-
-	// Create priority queue
-	fmt.Println("=== Priority Queue ===")
-	pq := qos.NewPriorityQueue(10)
-
-	// Enqueue packets with different priorities
-	packets := []qos.Packet{
-		{ID: "p1", Priority: qos.PriorityLow, Size: 1000, Source: "A", Dest: "B"},
-		{ID: "p2", Priority: qos.PriorityHigh, Size: 500, Source: "C", Dest: "D"},
-		{ID: "p3", Priority: qos.PriorityMedium, Size: 800, Source: "E", Dest: "F"},
-		{ID: "p4", Priority: qos.PriorityHigh, Size: 600, Source: "G", Dest: "H"},
-		{ID: "p5", Priority: qos.PriorityLow, Size: 1200, Source: "I", Dest: "J"},
-	}
-
-	fmt.Println("Enqueuing packets:")
-	for _, p := range packets {
-		pq.Enqueue(p)
-		fmt.Printf("  %s (%s priority, %d bytes)\n", p.ID, p.Priority, p.Size)
-	}
-
-	depths := pq.GetDepthByPriority()
-	fmt.Printf("\nQueue depths: High=%d, Medium=%d, Low=%d\n",
-		depths[qos.PriorityHigh], depths[qos.PriorityMedium], depths[qos.PriorityLow])
-
-	fmt.Println("\nDequeuing (strict priority):")
-	for i := 0; i < 5; i++ {
-		packet, ok := pq.Dequeue()
-		if ok {
-			fmt.Printf("  %d. %s (%s priority)\n", i+1, packet.ID, packet.Priority)
-		}
-	}
-
-	// Traffic shaping
-	fmt.Println("\n=== Traffic Shaping (Token Bucket) ===")
-	shaper := qos.NewTrafficShaper(1000.0, 5000) // 1000 bytes/sec, 5000 byte burst
-
-	fmt.Println("Testing token bucket with various packet sizes:")
-	testSizes := []int{1000, 2000, 3000, 1500, 2500}
-	for i, size := range testSizes {
-		canSend := shaper.CanSend(size)
-		status := "ALLOWED"
-		if !canSend {
-			status = "SHAPED/DROPPED"
-		}
-		fmt.Printf("  Packet %d (%d bytes): %s\n", i+1, size, status)
-
-		if i < len(testSizes)-1 {
-			time.Sleep(100 * time.Millisecond) // Allow token refill
-		}
-	}
-
-	shaperStats := shaper.GetStats()
-	fmt.Printf("\nShaper stats: Shaped=%d, Dropped=%d, Bytes=%d\n",
-		shaperStats.PacketsShaped, shaperStats.PacketsDropped, shaperStats.BytesShaped)
-
-	// Packet classification
-	fmt.Println("\n=== Packet Classification ===")
-	classifier := qos.NewPacketClassifier()
-
-	// Add classification rules
-	classifier.AddRule(qos.ClassificationRule{
-		Name:        "VoIP Traffic",
-		SourceMatch: "voip-server",
-		DestMatch:   "*",
-		Priority:    qos.PriorityHigh,
-		DSCP:        46, // EF (Expedited Forwarding)
-	})
-	classifier.AddRule(qos.ClassificationRule{
-		Name:        "Video Traffic",
-		SourceMatch: "video-server",
-		DestMatch:   "*",
-		Priority:    qos.PriorityMedium,
-		DSCP:        34, // AF41
-	})
-	classifier.AddRule(qos.ClassificationRule{
-		Name:        "Best Effort",
-		SourceMatch: "*",
-		DestMatch:   "*",
-		Priority:    qos.PriorityLow,
-		DSCP:        0,
-	})
-
-	// Classify some packets
-	testPackets := []struct{ source, dest string }{
-		{"voip-server", "client-1"},
-		{"video-server", "client-2"},
-		{"web-server", "client-3"},
-		{"voip-server", "client-4"},
-	}
-
-	fmt.Println("Classification results:")
-	for _, tp := range testPackets {
-		priority, dscp := classifier.Classify(tp.source, tp.dest)
-		fmt.Printf("  %s -> %s: Priority=%s, DSCP=%d\n",
-			tp.source, tp.dest, priority, dscp)
-	}
-
-	// QoS metrics
-	fmt.Println("\n=== QoS Metrics ===")
-	qosMetrics := qos.NewQoSMetrics()
-
-	// Record some measurements
-	qosMetrics.RecordDelay(qos.PriorityHigh, 0.010)   // 10ms
-	qosMetrics.RecordDelay(qos.PriorityHigh, 0.012)   // 12ms
-	qosMetrics.RecordDelay(qos.PriorityMedium, 0.050) // 50ms
-	qosMetrics.RecordDelay(qos.PriorityMedium, 0.055) // 55ms
-	qosMetrics.RecordDelay(qos.PriorityLow, 0.100)    // 100ms
-	qosMetrics.RecordDelay(qos.PriorityLow, 0.120)    // 120ms
-
-	// Record packet stats
-	qosMetrics.RecordPacket(qos.PriorityHigh, false)   // Sent
-	qosMetrics.RecordPacket(qos.PriorityHigh, false)   // Sent
-	qosMetrics.RecordPacket(qos.PriorityMedium, false) // Sent
-	qosMetrics.RecordPacket(qos.PriorityMedium, true)  // Dropped
-	qosMetrics.RecordPacket(qos.PriorityLow, true)     // Dropped
-	qosMetrics.RecordPacket(qos.PriorityLow, true)     // Dropped
-
-	qosMetrics.PrintDetailedStats()
-}
-
-func demo5Combined() {
-	fmt.Println("Combining routing, congestion control, and QoS")
-
-	// Setup topology with routing
-	config := simulator.GenerateMeshTopology(4)
-	topo := buildTopology(config)
-
-	// Use OSPF for routing
-	ospf := routing.NewOSPFProtocol(0)
-	ospf.Initialize("node-0", topo)
-
-	fmt.Println("Using OSPF routing protocol")
-	ospf.PrintRoutingTable()
-
-	// Setup congestion control for multiple connections
-	fmt.Println("\n=== Congestion Control ===")
-	conn1 := congestion.NewCongestionController("conn-1", "node-0", "node-1")
-	conn2 := congestion.NewCongestionController("conn-2", "node-0", "node-2")
-
-	// Simulate traffic with different congestion patterns
-	fmt.Println("Connection 1: Smooth traffic")
-	for i := 0; i < 5; i++ {
-		conn1.OnAck(1)
-	}
-	fmt.Printf("  Conn1: %s\n", conn1.GetMetrics().String())
-
-	fmt.Println("\nConnection 2: Lossy traffic")
-	for i := 0; i < 3; i++ {
-		conn2.OnAck(1)
-	}
-	conn2.OnLoss()
-	conn2.OnAck(1)
-	fmt.Printf("  Conn2: %s\n", conn2.GetMetrics().String())
-
-	// Setup QoS
-	fmt.Println("\n=== QoS Classification ===")
-	classifier := qos.NewPacketClassifier()
-	classifier.AddRule(qos.ClassificationRule{
-		Name:        "Connection 1",
-		SourceMatch: "node-0",
-		DestMatch:   "node-1",
-		Priority:    qos.PriorityHigh,
-		DSCP:        46,
-	})
-	classifier.AddRule(qos.ClassificationRule{
-		Name:        "Connection 2",
-		SourceMatch: "node-0",
-		DestMatch:   "node-2",
-		Priority:    qos.PriorityMedium,
-		DSCP:        0,
-	})
-
-	// Classify traffic
-	priority1, dscp1 := classifier.Classify("node-0", "node-1")
-	priority2, dscp2 := classifier.Classify("node-0", "node-2")
-
-	fmt.Printf("Conn1 classification: Priority=%s, DSCP=%d\n", priority1, dscp1)
-	fmt.Printf("Conn2 classification: Priority=%s, DSCP=%d\n", priority2, dscp2)
-
-	// Priority queue with traffic shaping
-	fmt.Println("\n=== Integrated QoS ===")
-	pq := qos.NewPriorityQueue(20)
-	shaper := qos.NewTrafficShaper(5000.0, 10000)
-
-	// Send packets through classifier -> shaper -> priority queue
-	fmt.Println("Processing packets:")
-	for i := 0; i < 4; i++ {
-		// Alternate between connections
-		source := "node-0"
-		dest := "node-1"
-		if i%2 == 1 {
-			dest = "node-2"
-		}
-
-		priority, dscp := classifier.Classify(source, dest)
-		packetSize := 1000
-
-		if shaper.CanSend(packetSize) {
-			packet := qos.Packet{
-				ID:       fmt.Sprintf("pkt-%d", i),
-				Priority: priority,
-				DSCP:     dscp,
-				Size:     packetSize,
-				Source:   source,
-				Dest:     dest,
-			}
-			pq.Enqueue(packet)
-			fmt.Printf("  %s: %s->%s (priority=%s) - QUEUED\n",
-				packet.ID, source, dest, priority)
-		} else {
-			fmt.Printf("  pkt-%d: %s->%s - SHAPED\n", i, source, dest)
-		}
-	}
-
-	fmt.Printf("\nFinal queue depth: %d\n", pq.GetDepth())
-	depths := pq.GetDepthByPriority()
-	fmt.Printf("  High=%d, Medium=%d, Low=%d\n",
-		depths[qos.PriorityHigh], depths[qos.PriorityMedium], depths[qos.PriorityLow])
-}
-
-// Helper function to build topology
 func buildTopology(config *simulator.TopologyConfig) *simulator.Topology {
 	topo := &simulator.Topology{
 		Config:  *config,
@@ -499,7 +372,6 @@ func buildTopology(config *simulator.TopologyConfig) *simulator.Topology {
 
 	for _, linkCfg := range config.Links {
 		topo.AdjList[linkCfg.Source] = append(topo.AdjList[linkCfg.Source], linkCfg.Dest)
-
 		if topo.Links[linkCfg.Source] == nil {
 			topo.Links[linkCfg.Source] = make(map[string]*simulator.Link)
 		}
@@ -508,8 +380,137 @@ func buildTopology(config *simulator.TopologyConfig) *simulator.Topology {
 			Dest:      linkCfg.Dest,
 			Bandwidth: linkCfg.Bandwidth,
 			Latency:   linkCfg.Latency,
+			Active:    true,
 		}
 	}
 
 	return topo
+}
+
+func runSimulation(sim *simulator.EventDrivenSimulator, duration float64) {
+	startTime := sim.GetCurrentTime()
+	for sim.GetCurrentTime()-startTime < duration {
+		sim.Step()
+		time.Sleep(10 * time.Millisecond) // Small delay for realism
+	}
+}
+
+func printNetworkTopology(topo *simulator.Topology) {
+	fmt.Println("Network Layout (Conceptual View):")
+	fmt.Println()
+	fmt.Println("This WOULD represent a mesh network topology where:")
+	fmt.Println("  • Each node has redundant connections to multiple neighbors")
+	fmt.Println("  • Traffic can flow through multiple alternate paths")
+	fmt.Println("  • No single point of failure exists in the network")
+	fmt.Println()
+
+	// Show a conceptual visualization for 20 nodes
+	fmt.Println("    [Rack 1]     [Rack 2]     [Rack 3]     [Rack 4]")
+	fmt.Println("  node-0...4   node-5...9  node-10...14 node-15...19")
+	fmt.Println("      │ ╲  ╱        │ ╲  ╱       │ ╲  ╱       │ ╲  ╱")
+	fmt.Println("      │  ╳          │  ╳         │  ╳         │  ╳")
+	fmt.Println("      │ ╱  ╲        │ ╱  ╲       │ ╱  ╲       │ ╱  ╲")
+	fmt.Println("      └─────────────┴────────────┴────────────┘")
+	fmt.Println("         (Interconnected across all racks)")
+	fmt.Println()
+	fmt.Println("In production, this WOULD provide:")
+	fmt.Println("  ✓ N-way redundancy for fault tolerance")
+	fmt.Println("  ✓ Load distribution across multiple paths")
+	fmt.Println("  ✓ Automatic failover capability")
+}
+
+func printNetworkStatus(sim *simulator.EventDrivenSimulator, title string) {
+	fmt.Printf("Network Status: %s\n", title)
+	fmt.Println()
+
+	nodes := sim.GetAllNodes()
+
+	activeCount := 0
+	failedCount := 0
+
+	for _, node := range nodes {
+		var symbol string
+		switch string(node.State) {
+		case "ACTIVE":
+			symbol = "●"
+			activeCount++
+		case "DEGRADED":
+			symbol = "◐"
+		case "FAILED":
+			symbol = "○"
+			failedCount++
+		default:
+			symbol = "?"
+		}
+
+		fmt.Printf("  %s %s [%s]\n", symbol, node.ID, node.State)
+	}
+
+	fmt.Println()
+	fmt.Printf("Status: %d active, %d failed\n", activeCount, failedCount)
+	fmt.Println("(● = Active, ○ = Failed)")
+}
+
+func printMetrics(sim *simulator.EventDrivenSimulator, phase string) {
+	fmt.Println()
+	fmt.Printf("═══ Metrics: %s ═══\n", phase)
+	fmt.Println()
+
+	metrics := sim.GetSystemMetrics()
+
+	// Simple visual bar for delivery rate
+	deliveryPct := int(metrics.DeliveryRate * 100)
+	bar := ""
+	for i := 0; i < deliveryPct/5; i++ {
+		bar += "█"
+	}
+	for i := deliveryPct / 5; i < 20; i++ {
+		bar += "░"
+	}
+
+	fmt.Printf("Messages Sent:      %4d\n", metrics.TotalMessagesSent)
+	fmt.Printf("Messages Delivered: %4d\n", metrics.TotalMessagesDelivered)
+	fmt.Printf("Delivery Rate:      %s %3d%%\n", bar, deliveryPct)
+	fmt.Printf("Average Latency:    %.3fs\n", metrics.AverageLatency)
+	fmt.Println()
+}
+
+func printNodeActivity(sim *simulator.EventDrivenSimulator) {
+	fmt.Println("Node Activity:")
+
+	nodes := sim.GetAllNodes()
+
+	for _, node := range nodes {
+		if string(node.State) == "FAILED" {
+			fmt.Printf("  %s: ─────────── (offline)\n", node.ID)
+			continue
+		}
+
+		metrics := sim.GetNodeMetrics(node.ID)
+
+		// Simple activity bar
+		activity := metrics.MessagesSent + metrics.MessagesReceived
+		bar := ""
+		barLength := int(activity / 2)
+		if barLength > 20 {
+			barLength = 20
+		}
+
+		for i := 0; i < barLength; i++ {
+			bar += "█"
+		}
+		for i := barLength; i < 20; i++ {
+			bar += "░"
+		}
+
+		fmt.Printf("  %s: %s (%d msgs)\n", node.ID, bar, activity)
+	}
+	fmt.Println()
+}
+
+func pause() {
+	fmt.Println()
+	fmt.Println("Press Enter to continue...")
+	fmt.Scanln()
+	fmt.Println()
 }

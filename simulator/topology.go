@@ -51,6 +51,7 @@ type Link struct {
 	Dest      string
 	Bandwidth int
 	Latency   int
+	Active    bool
 }
 
 // LoadTopology loads and validates a topology from a YAML file
@@ -92,6 +93,7 @@ func LoadTopology(filename string) (*Topology, error) {
 			Dest:      linkCfg.Dest,
 			Bandwidth: linkCfg.Bandwidth,
 			Latency:   linkCfg.Latency,
+			Active:    true,
 		}
 	}
 
